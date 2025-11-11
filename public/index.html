@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🎮 GameTracker</title>
+    <meta name="description" content="Biblioteca interactiva de videojuegos - React + Node + MongoDB" />
+    <meta name="theme-color" content="#0f0f0f" />
+
+    <!-- Ícono -->
+    <link rel="icon" type="image/png" href="/assets/icon.png" />
+
+    <!-- Fuente principal -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Estilos globales (inyectados por Vite) -->
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #111;
+        color: #fff;
+        font-family: 'Inter', sans-serif;
+      }
+
+      #root {
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+      }
+
+      /* Loader inicial antes de que React monte */
+      #boot-loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #0f0f0f;
+        color: #e50914;
+        font-size: 1.2rem;
+        font-weight: 600;
+        letter-spacing: 1px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Loader inicial mientras React se monta -->
+    <div id="boot-loader">Cargando GameTracker...</div>
+
+    <!-- Contenedor principal donde se montará React -->
+    <div id="root"></div>
+
+    <!-- Vite inyecta automáticamente el bundle principal -->
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+
+ 
