@@ -16,11 +16,10 @@ import {
   TrendingUp, 
   Calendar,
   Award,
-  Zap,
-  Shield,
+
+
   Flame,
-  Heart,
-  Medal,
+
   Crown
 } from 'lucide-react'
 
