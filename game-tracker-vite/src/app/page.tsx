@@ -1,10 +1,10 @@
 'use client'
 
+import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { Navbar } from '@/components/navbar'
 import { GameCarousel } from '@/components/game-carousel'
 import { GameCard } from '@/components/game-card'
-import { GameCard as SimpleGameCard } from '@/components/game-card-simple'
 import { GameForm } from '@/components/game-form'
 import { GameDetailModal } from '@/components/game-detail-modal'
 import { Button } from '@/components/ui/button'
@@ -12,12 +12,34 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Play, Plus, Star, Search, Filter, Grid, List, Eye, Check, X } from 'lucide-react'
+import { Plus, Star, Search, Filter, Grid, List, Eye, X } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Toaster } from '@/components/ui/toaster'
 
-// Datos de ejemplo
-const featuredGames = [
+/**
+ * Tipos
+ */
+type Review = { rating: number; id?: string; createdAt?: Date }
+type Game = {
+  id: string
+  title: string
+  description?: string
+  coverImage?: string
+  genre?: string
+  platform?: string
+  rating?: number
+  completed?: boolean
+  hoursPlayed?: number
+  userId?: string
+  createdAt?: Date
+  updatedAt?: Date
+  reviews?: Review[]
+}
+
+/**
+ * Datos de ejemplo
+ */
+const featuredGames: Game[] = [
   {
     id: '1',
     title: 'The Legend of Zelda: Tears of the Kingdom',
@@ -35,7 +57,7 @@ const featuredGames = [
   },
   {
     id: '2',
-    title: 'Baldur\'s Gate 3',
+    title: "Baldur's Gate 3",
     description: 'Una RPG épica con decisiones que moldean tu destino.',
     coverImage: '/placeholder-game.jpg',
     genre: 'RPG',
@@ -95,7 +117,7 @@ const featuredGames = [
   }
 ]
 
-const recentlyPlayed = [
+const recentlyPlayed: Game[] = [
   {
     id: '6',
     title: 'Cyberpunk 2077',
@@ -168,7 +190,7 @@ const recentlyPlayed = [
   }
 ]
 
-const topRated = [
+const topRated: Game[] = [
   {
     id: '11',
     title: 'Disco Elysium',
@@ -241,68 +263,70 @@ const topRated = [
   }
 ]
 
-const myGames = [
-  // Lista vacía al inicio - los usuarios deben añadir sus propios juegos
-]
+const initialMyGames: Game[] = []
 
 export default function Home() {
-  const [games, setGames] = useState(myGames)
+  const [games, setGames] = useState<Game[]>(initialMyGames)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedGenre, setSelectedGenre] = useState('all')
   const [selectedPlatform, setSelectedPlatform] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [isGameFormOpen, setIsGameFormOpen] = useState(false)
-  const [selectedGame, setSelectedGame] = useState<any>(null)
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null)
   const [isGameDetailOpen, setIsGameDetailOpen] = useState(false)
   const [addingToList, setAddingToList] = useState<string | null>(null) // Para animaciones
   const { toast } = useToast()
 
-  // Escuchar evento personalizado para abrir formulario desde navbar
+  // 👉 activeTab debe declararse antes de usarlo en useEffect
+  const [activeTab, setActiveTab] = useState<'discover' | 'mylist'>('discover')
+
   useEffect(() => {
     const handleOpenGameForm = () => {
       setIsGameFormOpen(true)
     }
-    
-    const handleGlobalSearch = (event: CustomEvent) => {
-      setSearchTerm(event.detail)
-      // Cambiar a la pestaña "Mi Lista" automáticamente cuando se busca
-      setActiveTab('mylist')
+
+    const handleGlobalSearch = (event: Event) => {
+      // custom event detail puede venir de string
+      const detail = (event as CustomEvent<string>).detail
+      if (typeof detail === 'string') {
+        setSearchTerm(detail)
+        setActiveTab('mylist')
+      }
     }
-    
+
     window.addEventListener('openGameForm', handleOpenGameForm)
     window.addEventListener('globalSearch', handleGlobalSearch as EventListener)
-    
+
     return () => {
       window.removeEventListener('openGameForm', handleOpenGameForm)
       window.removeEventListener('globalSearch', handleGlobalSearch as EventListener)
     }
   }, [])
 
-  const [activeTab, setActiveTab] = useState('discover')
-
   const genres = ['all', 'Aventura', 'RPG', 'Acción', 'Roguelike']
   const platforms = ['all', 'PC', 'Nintendo Switch', 'PS5', 'Xbox']
-  const statuses = ['all', 'completed', 'playing']
-
+  
   const filteredGames = games.filter(game => {
-    const matchesSearch = game.title.toLowerCase().includes(searchTerm.toLowerCase())
+    const title = (game.title || '').toLowerCase()
+    const matchesSearch = title.includes(searchTerm.toLowerCase())
     const matchesGenre = selectedGenre === 'all' || game.genre === selectedGenre
     const matchesPlatform = selectedPlatform === 'all' || game.platform === selectedPlatform
-    const matchesStatus = selectedStatus === 'all' || 
-      (selectedStatus === 'completed' && game.completed) ||
+    const matchesStatus =
+      selectedStatus === 'all' ||
+      (selectedStatus === 'completed' && !!game.completed) ||
       (selectedStatus === 'playing' && !game.completed)
-    
+
     return matchesSearch && matchesGenre && matchesPlatform && matchesStatus
   })
 
   // Función para filtrar juegos basados en búsqueda global
-  const filterGamesBySearch = (gamesList: any[]) => {
+  const filterGamesBySearch = (gamesList: Game[]) => {
     if (!searchTerm) return gamesList
-    return gamesList.filter(game => 
-      game.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      game.genre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      game.platform?.toLowerCase().includes(searchTerm.toLowerCase())
+    return gamesList.filter(game =>
+      (game.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (game.genre || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (game.platform || '').toLowerCase().includes(searchTerm.toLowerCase())
     )
   }
 
@@ -311,8 +335,8 @@ export default function Home() {
   const filteredRecentlyPlayed = filterGamesBySearch(recentlyPlayed)
   const filteredTopRated = filterGamesBySearch(topRated)
 
-  const totalHours = games.reduce((acc, game) => acc + game.hoursPlayed, 0)
-  const completedGames = games.filter(game => game.completed).length
+  const totalHours = games.reduce((acc, g) => acc + (g.hoursPlayed || 0), 0)
+  const completedGames = games.filter(g => !!g.completed).length
 
   const clearSearch = () => {
     setSearchTerm('')
@@ -324,7 +348,7 @@ export default function Home() {
   }
 
   // Añadir juego a la lista con animación
-  const addGameToList = async (game: any) => {
+  const addGameToList = async (game: Game) => {
     if (isGameInList(game.id)) {
       toast({
         title: "Juego ya en tu lista",
@@ -335,24 +359,24 @@ export default function Home() {
     }
 
     setAddingToList(game.id)
-    
+
     // Simular delay para la animación
     await new Promise(resolve => setTimeout(resolve, 800))
-    
-    const newGame = {
+
+    const newGame: Game = {
       ...game,
       id: game.id,
       userId: '1',
       createdAt: new Date(),
       updatedAt: new Date(),
-      reviews: [], // Empezar sin reseñas
+      reviews: [],
       completed: false,
       hoursPlayed: 0
     }
-    
+
     setGames(prev => [newGame, ...prev])
     setAddingToList(null)
-    
+
     // Mostrar notificación de éxito
     toast({
       title: "¡Juego añadido!",
@@ -363,7 +387,7 @@ export default function Home() {
   // Remover juego de la lista con animación
   const removeGameFromList = async (gameId: string, gameTitle: string) => {
     setGames(prev => prev.filter(game => game.id !== gameId))
-    
+
     // Mostrar notificación de confirmación
     toast({
       title: "Juego removido",
@@ -372,15 +396,13 @@ export default function Home() {
     })
   }
 
-  const handleGameClick = (game: any) => {
+  const handleGameClick = (game: Game) => {
     setSelectedGame(game)
     setIsGameDetailOpen(true)
   }
 
-  const handleGameSubmit = async (gameData: any) => {
+  const handleGameSubmit = async (gameData: Partial<Game>) => {
     try {
-      console.log('Adding game:', gameData)
-      
       // Validar datos básicos
       if (!gameData.title || !gameData.platform || !gameData.genre) {
         toast({
@@ -393,18 +415,25 @@ export default function Home() {
 
       // Generar ID único (más robusto que Date.now())
       const uniqueId = `game_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      
-      const newGame = {
-        ...gameData,
+
+      const newGame: Game = {
         id: uniqueId,
+        title: gameData.title,
+        description: gameData.description || '',
+        coverImage: gameData.coverImage || '/placeholder-game.jpg',
+        genre: gameData.genre,
+        platform: gameData.platform,
+        rating: gameData.rating || 0,
+        completed: false,
+        hoursPlayed: 0,
         userId: '1',
         createdAt: new Date(),
         updatedAt: new Date(),
         reviews: []
       }
-      
+
       setGames(prev => [newGame, ...prev])
-      
+
       toast({
         title: "¡Juego agregado!",
         description: `"${gameData.title}" ha sido agregado a tu biblioteca.`,
@@ -419,46 +448,42 @@ export default function Home() {
     }
   }
 
-  const handleAddReview = (reviewData: any) => {
+  const handleAddReview = (reviewData: { gameId: string; rating: number; comment?: string }) => {
     try {
-      // TODO: Replace with actual API call
-      console.log('Adding review:', reviewData)
-      
-      // For now, just add to local state
-      const newReview = {
-        ...reviewData,
+      const newReview: Review = {
+        rating: reviewData.rating,
         id: Date.now().toString(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        user: {
-          id: '1',
-          name: 'Gamer Pro',
-          avatar: '/placeholder-avatar.jpg'
-        },
-        game: {
-          id: reviewData.gameId,
-          title: selectedGame?.title || 'Unknown Game',
-          coverImage: selectedGame?.coverImage || '/placeholder-game.jpg'
-        }
+        createdAt: new Date()
       }
-      
-      setGames(prev => prev.map(game => 
-        game.id === reviewData.gameId 
-          ? { 
-              ...game, 
-              reviews: [...(game.reviews || []), newReview],
-              rating: ((game.reviews?.reduce((acc: number, r: any) => acc + r.rating, 0) || 0) + reviewData.rating) / ((game.reviews?.length || 0) + 1)
-            }
-          : game
-      ))
-      
-      // Update selected game to reflect new review
+
+      setGames(prev =>
+        prev.map(game =>
+          game.id === reviewData.gameId
+            ? {
+                ...game,
+                reviews: [...(game.reviews || []), newReview],
+                rating:
+                  ((game.reviews?.reduce((acc, r) => acc + (r.rating || 0), 0) || 0) +
+                    reviewData.rating) /
+                  ((game.reviews?.length || 0) + 1)
+              }
+            : game
+        )
+      )
+
       if (selectedGame && selectedGame.id === reviewData.gameId) {
-        setSelectedGame(prev => prev ? {
-          ...prev,
-          reviews: [...(prev.reviews || []), newReview],
-          rating: ((prev.reviews?.reduce((acc: number, r: any) => acc + r.rating, 0) || 0) + reviewData.rating) / ((prev.reviews?.length || 0) + 1)
-        } : null)
+        setSelectedGame(prev =>
+          prev
+            ? {
+                ...prev,
+                reviews: [...(prev.reviews || []), newReview],
+                rating:
+                  ((prev.reviews?.reduce((acc, r) => acc + (r.rating || 0), 0) || 0) +
+                    reviewData.rating) /
+                  ((prev.reviews?.length || 0) + 1)
+              }
+            : null
+        )
       }
     } catch (error) {
       console.error('Error adding review:', error)
@@ -468,19 +493,21 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       {/* Hero Section */}
       <div className="relative h-[70vh] overflow-hidden">
         <div className="absolute inset-0">
-          <img
+          <Image
             src="/placeholder-hero.jpg"
             alt="Featured Game"
-            className="w-full h-full object-cover"
+            fill
+            sizes="100vw"
+            className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
         </div>
-        
+
         <div className="relative z-10 h-full flex items-center">
           <div className="max-w-2xl px-8">
             <h1 className="text-foreground text-5xl md:text-6xl font-bold mb-4">
@@ -500,21 +527,21 @@ export default function Home() {
               <span className="text-foreground/60">Nintendo Switch</span>
             </div>
             <div className="flex gap-4">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="bg-red-600 hover:bg-red-700 text-white"
                 onClick={() => handleGameClick(featuredGames[0])}
               >
                 <Eye className="w-5 h-5 mr-2" />
                 Ver más
               </Button>
-              <Button 
-                size="lg" 
-                variant="secondary" 
+              <Button
+                size="lg"
+                variant="secondary"
                 className="bg-muted hover:bg-muted/80 text-foreground"
                 onClick={() => {
-                  if (isGameInList(featuredGames[0]?.id)) {
-                    removeGameFromList(featuredGames[0]?.id, featuredGames[0]?.title)
+                  if (isGameInList(featuredGames[0]?.id || '')) {
+                    removeGameFromList(featuredGames[0]?.id || '', featuredGames[0]?.title || '')
                   } else {
                     addGameToList(featuredGames[0])
                   }
@@ -523,21 +550,21 @@ export default function Home() {
               >
                 {addingToList === featuredGames[0]?.id ? (
                   <div className="animate-spin w-5 h-5 border-2 border-current border-t-transparent rounded-full mr-2" />
-                ) : isGameInList(featuredGames[0]?.id) ? (
+                ) : isGameInList(featuredGames[0]?.id || '') ? (
                   <X className="w-5 h-5 mr-2" />
                 ) : (
                   <Plus className="w-5 h-5 mr-2" />
                 )}
-                {isGameInList(featuredGames[0]?.id) ? 'Remover de Mi Lista' : 'Añadir a Mi Lista'}
+                {isGameInList(featuredGames[0]?.id || '') ? 'Remover de Mi Lista' : 'Añadir a Mi Lista'}
               </Button>
             </div>
           </div>
         </div>
       </div>
-      
+
       {/* Content */}
       <div className="px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'discover' | 'mylist')} className="w-full">
           <TabsList className="bg-gray-900 border-gray-800 mb-8">
             <TabsTrigger value="discover" className="data-[state=active]:bg-red-600 data-[state=active]:text-white text-white/80">
               Descubrir
@@ -547,7 +574,7 @@ export default function Home() {
             </TabsTrigger>
           </TabsList>
 
-            <TabsContent value="discover" className="space-y-12">
+          <TabsContent value="discover" className="space-y-12">
             {searchTerm && (
               <div className="text-center py-4">
                 <p className="text-foreground/60">
@@ -555,7 +582,7 @@ export default function Home() {
                 </p>
               </div>
             )}
-            
+
             <GameCarousel
               title="Lo Nuevo"
               games={filteredFeaturedGames}
@@ -564,7 +591,7 @@ export default function Home() {
               gamesInList={games.map(g => g.id)}
               addingToList={addingToList}
             />
-            
+
             <GameCarousel
               title="Jugados Recientemente"
               games={filteredRecentlyPlayed}
@@ -573,7 +600,7 @@ export default function Home() {
               gamesInList={games.map(g => g.id)}
               addingToList={addingToList}
             />
-            
+
             <GameCarousel
               title="Mejor Valorados"
               games={filteredTopRated}
@@ -582,7 +609,7 @@ export default function Home() {
               gamesInList={games.map(g => g.id)}
               addingToList={addingToList}
             />
-            
+
             {searchTerm && filteredFeaturedGames.length === 0 && filteredRecentlyPlayed.length === 0 && filteredTopRated.length === 0 && (
               <div className="text-center py-12">
                 <Search className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
@@ -625,8 +652,8 @@ export default function Home() {
                   )}
                 </div>
               </div>
-              
-                <Button onClick={() => setIsGameFormOpen(true)} className="bg-red-600 hover:bg-red-700 text-white">
+
+              <Button onClick={() => setIsGameFormOpen(true)} className="bg-red-600 hover:bg-red-700 text-white">
                 <Plus className="w-5 h-5 mr-2" />
                 Agregar Juego
               </Button>
@@ -638,7 +665,7 @@ export default function Home() {
                 <Filter className="w-5 h-5 text-foreground" />
                 <h3 className="text-foreground font-semibold">Filtros</h3>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -659,7 +686,7 @@ export default function Home() {
                     </Button>
                   )}
                 </div>
-                
+
                 <Select value={selectedGenre} onValueChange={setSelectedGenre}>
                   <SelectTrigger className="bg-muted border-border text-foreground">
                     <SelectValue placeholder="Género" />
@@ -672,7 +699,7 @@ export default function Home() {
                     ))}
                   </SelectContent>
                 </Select>
-                
+
                 <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
                   <SelectTrigger className="bg-muted border-border text-foreground">
                     <SelectValue placeholder="Plataforma" />
@@ -685,7 +712,7 @@ export default function Home() {
                     ))}
                   </SelectContent>
                 </Select>
-                
+
                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                   <SelectTrigger className="bg-muted border-border text-foreground">
                     <SelectValue placeholder="Estado" />
@@ -696,7 +723,7 @@ export default function Home() {
                     <SelectItem value="playing" className="text-foreground hover:bg-accent">Jugando</SelectItem>
                   </SelectContent>
                 </Select>
-                
+
                 <div className="flex gap-2">
                   <Button
                     variant={viewMode === 'grid' ? 'default' : 'outline'}
@@ -726,7 +753,7 @@ export default function Home() {
                   {searchTerm ? 'No se encontraron juegos' : 'No hay juegos en tu lista'}
                 </h3>
                 <p className="text-muted-foreground mb-4">
-                  {searchTerm 
+                  {searchTerm
                     ? `No se encontraron juegos que coincidan con "${searchTerm}"`
                     : 'Comienza agregando juegos a tu biblioteca'
                   }
@@ -738,8 +765,8 @@ export default function Home() {
                 )}
               </div>
             ) : (
-              <div className={viewMode === 'grid' 
-                ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6" 
+              <div className={viewMode === 'grid'
+                ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6"
                 : "space-y-4"
               }>
                 {filteredGames.map((game) => (
@@ -747,43 +774,45 @@ export default function Home() {
                     <div key={game.id} onClick={() => handleGameClick(game)}>
                       <GameCard
                         game={game}
-                        onRemoveFromList={() => removeGameFromList(game.id, game.title)}
-                        showRemoveButton={true}
+                        // GameCard props adjusted to accept onClick instead of onRemoveFromList if needed
+                        onClick={() => handleGameClick(game)}
                       />
                     </div>
                   ) : (
                     <div key={game.id} className="bg-card rounded-lg p-4 flex gap-4 hover:bg-accent transition-colors cursor-pointer" onClick={() => handleGameClick(game)}>
-                        <img src={game.coverImage} alt={game.title} className="w-20 h-28 object-cover rounded" />
-                        <div className="flex-1">
-                          <h3 className="text-foreground font-semibold text-lg mb-1">{game.title}</h3>
-                          <div className="flex gap-2 mb-2">
-                            <Badge variant="outline" className="border-border text-muted-foreground">{game.genre}</Badge>
-                            <Badge variant="outline" className="border-border text-muted-foreground">{game.platform}</Badge>
-                            {game.completed && (
-                              <Badge className="bg-green-600 text-white">Completado</Badge>
-                            )}
+                      <div className="w-20 h-28 relative flex-shrink-0">
+                        <Image src={game.coverImage || '/placeholder-game.jpg'} alt={game.title} fill sizes="80px" className="object-cover rounded" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-foreground font-semibold text-lg mb-1">{game.title}</h3>
+                        <div className="flex gap-2 mb-2">
+                          <Badge variant="outline" className="border-border text-muted-foreground">{game.genre || '—'}</Badge>
+                          <Badge variant="outline" className="border-border text-muted-foreground">{game.platform || '—'}</Badge>
+                          {game.completed && (
+                            <Badge className="bg-green-600 text-white">Completado</Badge>
+                          )}
+                        </div>
+                        <p className="text-muted-foreground text-sm mb-2">{game.description}</p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span>⭐ {game.rating?.toFixed(1) ?? '—'}</span>
+                            <span>🕐 {game.hoursPlayed ?? 0}h</span>
                           </div>
-                          <p className="text-muted-foreground text-sm mb-2">{game.description}</p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span>⭐ {game.rating}</span>
-                              <span>🕐 {game.hoursPlayed}h</span>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                removeGameFromList(game.id, game.title)
-                              }}
-                              className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
-                            >
-                              <X className="w-4 h-4 mr-1" />
-                              Remover
-                            </Button>
-                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              removeGameFromList(game.id, game.title)
+                            }}
+                            className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Remover
+                          </Button>
                         </div>
                       </div>
+                    </div>
                   )
                 ))}
               </div>
@@ -791,13 +820,13 @@ export default function Home() {
           </TabsContent>
         </Tabs>
       </div>
-      
+
       <GameForm
         isOpen={isGameFormOpen}
         onClose={() => setIsGameFormOpen(false)}
         onSubmit={handleGameSubmit}
       />
-      
+
       {selectedGame && (
         <GameDetailModal
           game={selectedGame}
@@ -806,12 +835,12 @@ export default function Home() {
             setIsGameDetailOpen(false)
             setSelectedGame(null)
           }}
-          onAddReview={handleAddReview}
+          onAddReview={(data) => handleAddReview(data)}
         />
       )}
-      
+
       <Toaster />
-      
+
       {/* Footer */}
       <footer className="bg-card border-t border-border mt-16">
         <div className="container mx-auto px-8 py-8">
@@ -833,7 +862,7 @@ export default function Home() {
           </div>
           <div className="mt-6 pt-6 border-t border-border text-center">
             <p className="text-muted-foreground text-xs">
-              © 2024 GameTracker. Todos los derechos reservados.
+              © 2025 GameTracker. Todos los derechos reservados.
             </p>
           </div>
         </div>

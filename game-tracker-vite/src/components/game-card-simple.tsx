@@ -22,12 +22,14 @@ interface GameCardProps {
 }
 
 export function GameCard({ game, onClick }: GameCardProps) {
-  const averageRating = game.reviews?.length 
-    ? game.reviews.reduce((acc, review) => acc + review.rating, 0) / game.reviews.length 
-    : game.rating
+  const averageRating =
+    game.reviews?.length
+      ? game.reviews.reduce((acc, review) => acc + review.rating, 0) /
+        game.reviews.length
+      : game.rating || 0
 
   return (
-    <Card 
+    <Card
       className="bg-card border-border hover:bg-accent/50 transition-all duration-300 cursor-pointer group"
       onClick={onClick}
     >
@@ -37,19 +39,20 @@ export function GameCard({ game, onClick }: GameCardProps) {
             src={game.coverImage || '/placeholder-game.jpg'}
             alt={game.title}
             fill
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            sizes="(max-width: 768px) 50vw, 25vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-background/80" />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/80" />
-          
-          {/* Overlay on hover */}
+
+          {/* Overlay superior */}
+          <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/10 to-transparent" />
+
+          {/* Hover info */}
           <div className="absolute inset-0 flex flex-col justify-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <div className="flex items-center gap-2 mb-2">
               {game.completed && (
-                <Badge className="bg-green-600 text-white text-xs">
-                  Completado
-                </Badge>
+                <Badge className="bg-green-600 text-white text-xs">Completado</Badge>
               )}
+
               <div className="flex items-center gap-1">
                 <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                 <span className="text-white text-sm font-medium">
@@ -57,32 +60,37 @@ export function GameCard({ game, onClick }: GameCardProps) {
                 </span>
               </div>
             </div>
-            
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 text-white/80 text-sm">
+
+            <div className="flex items-center gap-4 text-white/80 text-sm">
+              <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
                 <span>{game.hoursPlayed || 0}h</span>
               </div>
-              <div className="flex items-center gap-1 text-white/80 text-sm">
+
+              <div className="flex items-center gap-1">
                 <Play className="w-4 h-4" />
-                <span>{game.genre}</span>
+                <span>{game.genre || 'N/A'}</span>
               </div>
             </div>
           </div>
         </div>
-        
+
+        {/* Texto */}
         <div className="p-4">
           <h3 className="text-foreground font-semibold text-lg mb-2 line-clamp-2">
             {game.title}
           </h3>
+
           <div className="flex items-center gap-2 mb-3">
             <Badge variant="outline" className="text-xs border-border text-muted-foreground">
-              {game.genre}
+              {game.genre || 'Sin género'}
             </Badge>
+
             <Badge variant="outline" className="text-xs border-border text-muted-foreground">
-              {game.platform}
+              {game.platform || 'Sin plataforma'}
             </Badge>
           </div>
+
           {game.description && (
             <p className="text-muted-foreground text-sm line-clamp-3">
               {game.description}
